@@ -15,10 +15,43 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  int _unreadNotifications = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadNotifications();
+    _setupFirebaseMessaging();
+  }
 
+  Future<void> _loadUnreadNotifications() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _unreadNotifications = prefs.getInt('unread_notifications') ?? 0;
+    });
+  }
 
+  Future<void> _incrementUnreadNotifications() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _unreadNotifications += 1;
+    });
+    prefs.setInt('unread_notifications', _unreadNotifications);
+  }
 
+  Future<void> _clearUnreadNotifications() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _unreadNotifications = 0;
+    });
+    prefs.setInt('unread_notifications', 0);
+  }
+
+  void _setupFirebaseMessaging() {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      _incrementUnreadNotifications();
+    });
+  }
 
   void signOut(BuildContext context) async {
     await GoogleSignIn().signOut();
@@ -33,15 +66,43 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text("Home Page"),
         backgroundColor: Colors.blue[900],
         actions: [
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.yellow), // Yellow notification icon
-            onPressed: () {
-              // Navigate to the next page when the icon is clicked
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => NotificationScreen()),
-              );
-            },
+          Stack(
+            children: [
+              IconButton(
+                icon: Icon(Icons.notifications, color: Colors.yellow),
+                onPressed: () {
+                  _clearUnreadNotifications();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => NotificationScreen()),
+                  );
+                },
+              ),
+              if (_unreadNotifications > 0)
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: Container(
+                    padding: EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: BoxConstraints(
+                      minWidth: 20,
+                      minHeight: 20,
+                    ),
+                    child: Text(
+                      '$_unreadNotifications',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
@@ -49,7 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => signOut(context),

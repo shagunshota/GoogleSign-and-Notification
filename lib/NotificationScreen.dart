@@ -50,14 +50,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
   String _getNotificationText(RemoteMessage message) {
     String title = message.notification?.title ?? 'No title';
     String body = message.notification?.body ?? 'No body';
-    return " $title\n  $body";
+    return "$title\n$body";
   }
 
   // Load notifications from SQLite
   _loadNotifications() async {
     List<String> storedNotifications = await DatabaseHelper.instance.getNotifications();
     setState(() {
-      notificationMessages = storedNotifications;
+      notificationMessages = storedNotifications.reversed.toList(); // Show newest first
     });
   }
 
@@ -70,7 +70,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
 
     await DatabaseHelper.instance.insertNotification(notification);
-
     _loadNotifications(); // Refresh UI
   }
 
@@ -90,30 +89,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
         padding: EdgeInsets.all(16),
         child: Column(
           children: [
-            if (notificationMessages.isEmpty)
-              Padding(
-                padding: EdgeInsets.all(20),
+            Expanded(
+              child: notificationMessages.isEmpty
+                  ? Center(
                 child: Text(
                   "No notifications yet.",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
                 ),
-              ),
-            Expanded(
-              child: ListView.builder(
+              )
+                  : ListView.builder(
                 itemCount: notificationMessages.length,
                 itemBuilder: (context, index) {
                   return Card(
                     margin: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 3,
-                    child: Padding(
-                      padding: EdgeInsets.all(12),
-                      child: ListTile(
-                        leading: Icon(Icons.notifications, color: Colors.blue, size: 28),
-                        title: Text(
-                          notificationMessages[index],
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
-                        ),
+                    child: ListTile(
+                      leading: Icon(Icons.notifications, color: Colors.blue, size: 28),
+                      title: Text(
+                        notificationMessages[index],
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                       ),
                     ),
                   );
